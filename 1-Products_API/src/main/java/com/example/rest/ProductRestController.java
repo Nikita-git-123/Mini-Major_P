@@ -83,7 +83,7 @@ public class ProductRestController {
 
 	}
 
-	@GetMapping("/product/{id}")
+	@GetMapping("/product/{productId}")
 	public ResponseEntity<ApiResponse<ProductDto>> product(@PathVariable Long productId) {
 
 		ProductDto product = productService.findByProductId(productId);

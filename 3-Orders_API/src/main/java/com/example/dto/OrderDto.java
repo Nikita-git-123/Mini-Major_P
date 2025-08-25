@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 public class OrderDto {
-	
+
 	private Long orderId;
 
 	private String orderTrackingNum;
@@ -17,15 +17,14 @@ public class OrderDto {
 
 	private String orderStatus;
 
-	private double totalPrice;
+	private Double totalPrice;
 
-	private int totalQuantity;
+	private Integer totalQuantity;
 
 	private String razorPayPaymentId; // payment completed
 
 	private String invoiceUrl;
 
 	private LocalDate deliveryDate;
-
 
 }

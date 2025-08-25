@@ -1,6 +1,11 @@
 package com.example.service;
 
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +44,9 @@ public class OrderServiceImpl implements OrderService {
 
 	@Autowired
 	private RazorPayService razorPayService;
+	
+	@Autowired
+	private EmailService emailService;
 
 	@Override
 	public PurchaseOrderResponse createOrder(PurchaseOrderRequest orderRequest) {
@@ -73,10 +81,10 @@ public class OrderServiceImpl implements OrderService {
 		Order newOrder = new Order();
 		String orderTrackingNumber = generateOrderTrackingNumber();
 		newOrder.setOrderTrackingNum(orderTrackingNumber);
-		
+
 		// create razoray order & get order details
 		com.razorpay.Order paymentOrder = razorPayService.createPaymentOrder(orderDto.getTotalPrice());
-		
+
 		newOrder.setRazorPayOrderId(paymentOrder.get("id"));
 		newOrder.setOrderStatus(paymentOrder.get("status"));
 		newOrder.setTotalPrice(orderDto.getTotalPrice());
@@ -112,20 +120,52 @@ public class OrderServiceImpl implements OrderService {
 	}
 
 	@Override
-	public List<Order> getOrdersByEmail(String email) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<OrderDto> getOrdersByEmail(String email) {
+		
+		List<OrderDto> dtosList = new ArrayList<>();
+		List<Order> ordersList = orderRepo.findByEmail(email);
+		for(Order order : ordersList) {
+			OrderDto dto = new OrderDto();
+			BeanUtils.copyProperties(order, dto);
+			dtosList.add(dto);
+		}
+		return dtosList;
 	}
 
 	@Override
 	public PurchaseOrderResponse updateOrder(PaymentCallBackDto paymentCallBackDTo) {
-		// TODO Auto-generated method stub
-		return null;
+		
+		Order order = orderRepo.findByRazorPayOrderId(paymentCallBackDTo.getRazorPayOrderId());
+		
+		if(order != null) {
+			
+			order.setOrderStatus("CONFIRMED");
+			order.setDeliveryDate(LocalDate.now().plusDays(3));
+			order.setRazorPayPaymentId(paymentCallBackDTo.getRazorPayPaymentId());
+			orderRepo.save(order);
+			
+			String subject = "Your Order Confirmed";
+			String body = "ThankYou, You will receive order on " + order.getDeliveryDate();
+			
+			emailService.sendEmail(order.getEmail(), subject, body);
+		}
+
+		return PurchaseOrderResponse.builder()
+					                .razorPayOrderId(paymentCallBackDTo.getRazorPayOrderId())
+					                .orderStatus(order.getOrderStatus())
+					                .orderTrackingNumber(order.getOrderTrackingNum())
+					                .build();
 	}
 
 	private String generateOrderTrackingNumber() {
 
-		return null;
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+
+		String timeStamp = sdf.format(new Date());
+
+		String randomUuid = UUID.randomUUID().toString().substring(0, 5).toUpperCase();
+
+		return "OD" + timeStamp + randomUuid;
 	}
 
 }
